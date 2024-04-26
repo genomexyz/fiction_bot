@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rikka chatroom</title>
+    <link href="https://cdn.jsdelivr.net/npm/tailwindcss@2.2.16/dist/tailwind.min.css" rel="stylesheet">
+    <style>
+        .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            margin-right: 10px;
+        }
+        .message-container {
+            display: flex;
+            align-items: flex-start;
+        }
+        .user .message-container {
+            justify-content: flex-end;
+        }
+    </style>
+</head>
+
+<body class="bg-gray-100 h-screen flex flex-col justify-between">
+    <h1 class="text-center text-3xl font-bold py-6">Your Personal Assistant</h1>
+    <div id="chat-box" class="p-4 flex-grow overflow-y-auto"></div>
+    <div class="p-4 bg-white flex">
+        <input type="text" id="user-input" placeholder="Type a message..." class="flex-grow border rounded-l-md p-2 focus:outline-none">
+        <button id="send-btn" class="bg-blue-500 text-white px-4 py-2 rounded-r-md">Send</button>
+    </div>
+
+    <script>
+        let history_chat = []
+
+        document.addEventListener('DOMContentLoaded', function() {
+            const chatBox = document.getElementById('chat-box');
+            const userInput = document.getElementById('user-input');
+            const sendBtn = document.getElementById('send-btn');
+
+            const bot_ava_link = "{{ url_for('static', filename='rikka.png') }}"
+            const user_ava_link = "{{ url_for('static', filename='user.png') }}"
+
+
+            // Function to display messages in the chat box
+            function appendMessage(message, sender) {
+                const messageContainer = document.createElement('div');
+                messageContainer.classList.add('message-container');
+                messageContainer.classList.add(sender);
+                messageContainer.innerHTML = `<img src="${sender === 'chatbot' ? bot_ava_link : user_ava_link}" alt="Avatar" class="avatar"> <div class="message">${message}</div>`;
+                chatBox.appendChild(messageContainer);
+                chatBox.scrollTop = chatBox.scrollHeight; // Scroll to bottom
+            }
+
+            // Function to send user message to the server
+            function sendMessage() {
+                const message = userInput.value;
+                if (message.trim() === '') return;
+                appendMessage(message, 'yuuta');
+                history_chat.push('Yuuta: '+message)
+                userInput.value = '';
+
+                // Send message to server
+                fetch('/chat', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json'
+                    },
+                    //body: JSON.stringify({ message: message })
+                    body: JSON.stringify({ message: history_chat})
+                })
+                .then(response => response.json())
+                .then(data => {
+                    appendMessage(data.response, 'chatbot');
+                    history_chat.push('Rikka: '+ data.response)
+                })
+                .catch(error => {
+                    console.error('Error sending message:', error);
+                });
+            }
+
+            // Event listener for send button click
+            sendBtn.addEventListener('click', sendMessage);
+
+            // Event listener for Enter key press in input field
+            userInput.addEventListener('keypress', function(event) {
+                if (event.key === 'Enter') {
+                    sendMessage();
+                }
+            });
+
+            // Initial greeting from the chatbot
+            /*fetch('/chat', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({ message: 'hi' })
+            })
+            .then(response => response.json())
+            .then(data => {
+                appendMessage(data.response, 'chatbot');
+            })
+            .catch(error => {
+                console.error('Error sending initial message:', error);
+            });*/
+        });
+    </script>
+</body>
+
+</html>
